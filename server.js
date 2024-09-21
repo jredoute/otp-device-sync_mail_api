@@ -101,14 +101,14 @@ const launchServer = function (afterSendCodeHook) {
             c.value.sendUTF(code);
             c.value.close(1000, 'Job done')
             afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
-
+            fs.unlinkSync(path)
           } catch (e) {
             console.error(`error try matching ${path} with client socket: ${c.from} ${c.user}`, e)
           }
         }
       } catch (e) {
         console.error(`error parsing mail: ${path}`, e)
-      }
+      }      
     }
   });
 }
