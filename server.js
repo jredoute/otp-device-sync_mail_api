@@ -21,7 +21,7 @@ const connections = []
 
 const baseMailPath = `${process.env.USERS_PATH}`
 
-const launchServer = function (afterSendCodeHook) {
+const launchServer = function (afterSendCodeHook, errorParsingHook) {
   var server = http.createServer();
 
   server.listen(process.env.PORT, function() {
@@ -105,6 +105,7 @@ const launchServer = function (afterSendCodeHook) {
               // we don't need the email anymore
               fs.unlinkSync(path)
             } catch (e) {
+              errorParsingHook && errorParsingHook(parsed, c.from, c.user)
               // the email stays on the server for debugging purpose
               console.error(`error try matching ${path} with client socket: ${c.from} ${c.user}`, e)
             }
