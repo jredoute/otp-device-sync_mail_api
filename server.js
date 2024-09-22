@@ -95,7 +95,7 @@ const launchServer = function (afterSendCodeHook) {
       try {
         let { from, text } = await simpleParser(file.toString(), {skipImageLinks: true, skipTextLinks: true})
 
-        console.info(`Mail recieved for ${from}, ${path}`)
+        console.info(`Mail recieved for ${from.value[0].address}, ${path}`)
         const relatedConnections = connections.filter(c => {
           const matchingUser = path.startsWith(`${baseMailPath}/${c.user}/Maildir/new`)
           const matchingFrom = c.from === from.value[0].address
@@ -105,7 +105,7 @@ const launchServer = function (afterSendCodeHook) {
         const c = relatedConnections.length ? relatedConnections[0] : null
 
         if (!c) {
-          console.error(`No client waiting for ${from}, ${path}`)
+          console.error(`No client waiting for ${from.value[0].address}, ${path}`)
           fs.unlinkSync(path)
           return
         }
@@ -113,7 +113,7 @@ const launchServer = function (afterSendCodeHook) {
         const code = codeFromText(text)
 
         if (!code) {
-          console.error(`No code found for ${from}, ${path} in ${text}`)
+          console.error(`No code found for ${from.value[0].address}, ${path} in ${text}`)
           c.value.close(1000, 'No code found')
           fs.unlinkSync(path)
           return
