@@ -21,7 +21,7 @@ const connections = []
 
 const baseMailPath = `${process.env.USERS_PATH}`
 
-const launchServer = function (afterSendCodeHook, errorParsingHook) {
+const launchServer = function (afterSendCodeHook) {
   var server = http.createServer();
 
   server.listen(process.env.PORT, function() {
@@ -73,6 +73,18 @@ const launchServer = function (afterSendCodeHook, errorParsingHook) {
       console.error(`error while creation ${from} ${email}`)
     }
   })
+
+
+  const codeFromText = (text) => {
+    let m = text.match(/^[0-9]{4,8}$/m)
+    if (!m) {
+      m = text.match(/^[0-9A-Z]{4,8}$/m)
+    }
+    if (!m) {
+      m = text.match(/^[0-9A-Za-z]{4,8}$/m)
+    }
+    return m ? m[0] : null
+  }
   
   chokidar.watch(baseMailPath, {
     ignoreInitial: true
@@ -81,41 +93,39 @@ const launchServer = function (afterSendCodeHook, errorParsingHook) {
       const file = fs.readFileSync(path)
   
       try {
-        let parsed = await simpleParser(file.toString(), {skipImageLinks: true, skipTextLinks: true})
+        let { from, text } = await simpleParser(file.toString(), {skipImageLinks: true, skipTextLinks: true})
 
+        console.info(`Mail recieved for ${from}, ${path}`)
         const relatedConnections = connections.filter(c => {
           const matchingUser = path.startsWith(`${baseMailPath}/${c.user}/Maildir/new`)
-          const matchingFrom = c.from === parsed.from.value[0].address
+          const matchingFrom = c.from === from.value[0].address
           return c.value.connected && matchingFrom && matchingUser
         })
-        if (relatedConnections.length) {
-          for (const c of relatedConnections) {
-            try {
-              let m = parsed.text.match(/^[0-9]{4,8}$/m)
-              if (!m) {
-                m = parsed.text.match(/^[0-9A-Z]{4,8}$/m)
-              }
-              if (!m) {
-                m = parsed.text.match(/^[0-9A-Za-z]{4,8}$/m)
-              }
-              const code = m ? m[0] : null
-              c.value.sendUTF(code);
-              c.value.close(1000, 'Job done')
-              afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
-              // we don't need the email anymore
-              fs.unlinkSync(path)
-            } catch (e) {
-              errorParsingHook && errorParsingHook(parsed, c.from, c.user)
-              // the email stays on the server for debugging purpose
-              console.error(`error try matching ${path} with client socket: ${c.from} ${c.user}`, e)
-            }
-          }
-        } else {
-          // email sent without anyone waiting for it
+
+        const c = relatedConnections.length ? relatedConnections[0] : null
+
+        if (!c) {
+          console.error(`No client waiting for ${from}, ${path}`)
           fs.unlinkSync(path)
+          return
         }
+
+        const code = codeFromText(text)
+
+        if (!code) {
+          console.error(`No code found for ${from}, ${path} in ${text}`)
+          c.value.close(1000, 'No code found')
+          fs.unlinkSync(path)
+          return
+        }
+
+        c.value.sendUTF(code);
+        c.value.close(1000, 'Job done')
+        fs.unlinkSync(path)
+
+        afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
       } catch (e) {
-        console.error(`error parsing mail: ${path}`, e)
+        console.error(`error parsing mail: ${path}`)
       }      
     }
   });
