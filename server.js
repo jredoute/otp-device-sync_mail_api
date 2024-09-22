@@ -88,23 +88,30 @@ const launchServer = function (afterSendCodeHook) {
           const matchingFrom = c.from === parsed.from.value[0].address
           return c.value.connected && matchingFrom && matchingUser
         })
-        for (const c of relatedConnections) {
-          try {
-            let m = parsed.text.match(/^[0-9]{4,8}$/m)
-            if (!m) {
-              m = parsed.text.match(/^[0-9A-Z]{4,8}$/m)
+        if (relatedConnections.length) {
+          for (const c of relatedConnections) {
+            try {
+              let m = parsed.text.match(/^[0-9]{4,8}$/m)
+              if (!m) {
+                m = parsed.text.match(/^[0-9A-Z]{4,8}$/m)
+              }
+              if (!m) {
+                m = parsed.text.match(/^[0-9A-Za-z]{4,8}$/m)
+              }
+              const code = m ? m[0] : null
+              c.value.sendUTF(code);
+              c.value.close(1000, 'Job done')
+              afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
+              // we don't need the email anymore
+              fs.unlinkSync(path)
+            } catch (e) {
+              // the email stays on the server for debugging purpose
+              console.error(`error try matching ${path} with client socket: ${c.from} ${c.user}`, e)
             }
-            if (!m) {
-              m = parsed.text.match(/^[0-9A-Za-z]{4,8}$/m)
-            }
-            const code = m ? m[0] : null
-            c.value.sendUTF(code);
-            c.value.close(1000, 'Job done')
-            afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
-            fs.unlinkSync(path)
-          } catch (e) {
-            console.error(`error try matching ${path} with client socket: ${c.from} ${c.user}`, e)
           }
+        } else {
+          // email sent without anyone waiting for it
+          fs.unlinkSync(path)
         }
       } catch (e) {
         console.error(`error parsing mail: ${path}`, e)
