@@ -111,7 +111,7 @@ const launchServer = function (afterSendCodeHook) {
           return
         }
 
-        if (all) {
+        if (c.all) {
           c.value.sendUTF(text)
 
           c.value.close(1000, 'Job done')
