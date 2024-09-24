@@ -39,7 +39,7 @@ const launchServer = function (afterSendCodeHook) {
   });
   
   wsServer.on('request', function(request) {
-    const { from, email } = request.resourceURL.query
+    const { from, email, all } = request.resourceURL.query
 
     if (!from) {
       request.reject(403, 'from query string must be specified')
@@ -67,7 +67,8 @@ const launchServer = function (afterSendCodeHook) {
       connections.push({
         value: connection,
         from,
-        user: email.substring(0, mailHostIndex)
+        user: email.substring(0, mailHostIndex),
+        all
       })
     } catch (e) {
       console.error(`error while creation ${from} ${email}`)
@@ -110,20 +111,30 @@ const launchServer = function (afterSendCodeHook) {
           return
         }
 
-        const code = codeFromText(text)
+        if (all) {
+          c.value.sendUTF(text)
 
-        if (!code) {
-          console.error(`No code found for ${from.value[0].address}, ${path} in ${text}`)
-          c.value.close(1000, 'No code found')
+          c.value.close(1000, 'Job done')
           fs.unlinkSync(path)
-          return
+
+        } else {
+          const code = codeFromText(text)
+
+          if (!code) {
+            console.error(`No code found for ${from.value[0].address}, ${path} in ${text}`)
+            c.value.close(1000, 'No code found')
+            fs.unlinkSync(path)
+            return
+          }
+
+          c.value.sendUTF(code);
+
+          c.value.close(1000, 'Job done')
+          fs.unlinkSync(path)
+  
+          afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
         }
-
-        c.value.sendUTF(code);
-        c.value.close(1000, 'Job done')
-        fs.unlinkSync(path)
-
-        afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
+       
       } catch (e) {
         console.error(`error parsing mail: ${path}`)
       }      
