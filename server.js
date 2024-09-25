@@ -129,7 +129,11 @@ const launchServer = function (afterSendCodeHook) {
             c.value.close(1000, 'Job done')
 
             if (c.all) {
-              afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
+              afterSendCodeHook && afterSendCodeHook(JSON.stringify({
+                codes,
+                links,
+                html
+              }), c.from, c.user)
             }
           } catch (e) {
             console.error(`error with ws client:`, e)
