@@ -132,7 +132,7 @@ const launchServer = function (afterSendCodeHook) {
               afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
             }
           } catch (e) {
-            console.error(`error with ws client:`, c)
+            console.error(`error with ws client:`, e)
           }
         }
        
