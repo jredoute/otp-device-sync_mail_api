@@ -93,7 +93,7 @@ const launchServer = function (afterSendCodeHook) {
       const file = fs.readFileSync(path)
   
       try {
-        let { from, text } = await simpleParser(file.toString(), {skipImageLinks: true, skipTextLinks: true})
+        let { from, text, html } = await simpleParser(file.toString(), {skipImageLinks: true, skipTextLinks: true})
 
         console.info(`Mail recieved for ${from.value[0].address}, ${path}`)
         const relatedConnections = connections.filter(c => {
@@ -122,7 +122,8 @@ const launchServer = function (afterSendCodeHook) {
 
         c.value.sendUTF(JSON.stringify({
           codes,
-          links
+          links,
+          html
         }));
 
         c.value.close(1000, 'Job done')
