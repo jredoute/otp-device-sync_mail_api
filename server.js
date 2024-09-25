@@ -111,7 +111,7 @@ const launchServer = function (afterSendCodeHook) {
         const codes = extractCodes(text)
         const links = extractLinks(text)
 
-        for (const c in relatedConnections) {
+        for (let c of relatedConnections) {
           try {
             if (!codes) {
               console.error(`No code found for ${from.value[0].address}, ${path} in ${text}`)
