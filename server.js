@@ -75,17 +75,16 @@ const launchServer = function (afterSendCodeHook) {
     }
   })
 
+  const extractCodes = (text) => {
+    const matches = text.match(/^(?:[0-9]{4,6}|[0-9A-Za-z]{6,8}|[a-fA-F0-9]{6,8})$/gm)
+    return matches || [];
+  };
 
-  const codeFromText = (text) => {
-    let m = text.match(/^[0-9]{4,8}$/m)
-    if (!m) {
-      m = text.match(/^[0-9A-Z]{4,8}$/m)
-    }
-    if (!m) {
-      m = text.match(/^[0-9A-Za-z]{4,8}$/m)
-    }
-    return m ? m[0] : null
-  }
+  const extractLinks = (text) => {
+    const urlPattern = /https?:\/\/[^\s]+/g;
+    const links = text.match(urlPattern);
+    return links || [];
+  };
   
   chokidar.watch(baseMailPath, {
     ignoreInitial: true
@@ -111,30 +110,27 @@ const launchServer = function (afterSendCodeHook) {
           return
         }
 
+        const codes = extractCodes(text)
+        const links = extractLinks(text)
+
+        if (!codes) {
+          console.error(`No code found for ${from.value[0].address}, ${path} in ${text}`)
+          c.value.close(1000, 'No code found')
+          fs.unlinkSync(path)
+          return
+        }
+
+        c.value.sendUTF(JSON.stringify({
+          codes,
+          links
+        }));
+
+        c.value.close(1000, 'Job done')
+        fs.unlinkSync(path)
+
         if (c.all) {
-          c.value.sendUTF(text)
-
-          c.value.close(1000, 'Job done')
-          fs.unlinkSync(path)
-
-        } else {
-          const code = codeFromText(text)
-
-          if (!code) {
-            console.error(`No code found for ${from.value[0].address}, ${path} in ${text}`)
-            c.value.close(1000, 'No code found')
-            fs.unlinkSync(path)
-            return
-          }
-
-          c.value.sendUTF(code);
-
-          c.value.close(1000, 'Job done')
-          fs.unlinkSync(path)
-  
           afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
         }
-       
       } catch (e) {
         console.error(`error parsing mail: ${path}`)
       }      
