@@ -102,9 +102,7 @@ const launchServer = function (afterSendCodeHook) {
           return c.value.connected && matchingFrom && matchingUser
         })
 
-        const c = relatedConnections.length ? relatedConnections[0] : null
-
-        if (!c) {
+        if (!relatedConnections.length) {
           console.error(`No client waiting for ${from.value[0].address}, ${path}`)
           fs.unlinkSync(path)
           return
@@ -113,30 +111,37 @@ const launchServer = function (afterSendCodeHook) {
         const codes = extractCodes(text)
         const links = extractLinks(text)
 
-        if (!codes) {
-          console.error(`No code found for ${from.value[0].address}, ${path} in ${text}`)
-          c.value.close(1000, 'No code found')
-          fs.unlinkSync(path)
-          return
+        for (const c in relatedConnections) {
+          try {
+            if (!codes) {
+              console.error(`No code found for ${from.value[0].address}, ${path} in ${text}`)
+              c.value.close(1000, 'No code found')
+              fs.unlinkSync(path)
+              return
+            }
+    
+            c.value.sendUTF(JSON.stringify({
+              codes,
+              links,
+              html
+            }));
+    
+            c.value.close(1000, 'Job done')
+
+            if (c.all) {
+              afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
+            }
+          } catch (e) {
+            console.error(`error with ws client:`, c)
+          }
         }
-
-        c.value.sendUTF(JSON.stringify({
-          codes,
-          links,
-          html
-        }));
-
-        c.value.close(1000, 'Job done')
+       
         fs.unlinkSync(path)
-
-        if (c.all) {
-          afterSendCodeHook && afterSendCodeHook(code, c.from, c.user)
-        }
       } catch (e) {
         console.error(`error parsing mail: ${path}`)
       }      
     }
-  });
+  })
 }
 
 export {
