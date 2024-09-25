@@ -128,7 +128,7 @@ const launchServer = function (afterSendCodeHook) {
     
             c.value.close(1000, 'Job done')
 
-            if (c.all) {
+            if (!c.all) {
               afterSendCodeHook && afterSendCodeHook(JSON.stringify({
                 codes,
                 links,
