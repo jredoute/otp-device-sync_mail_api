@@ -55,7 +55,7 @@ const launchServer = function (afterSendCodeHook) {
       const matchingUser = c.email === email
       const matchingFrom = c.from === from
       return c.value.connected && matchingFrom && matchingUser
-    })
+    }).length
 
     if (nb > 2) {
       request.reject(403, 'too many connections for this service-user pair')
