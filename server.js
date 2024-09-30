@@ -51,6 +51,12 @@ const launchServer = function (afterSendCodeHook) {
     }
 
     const mailHostIndex = email.indexOf(`@${process.env.HOST}`)
+
+    if (mailHostIndex === -1) {
+      request.reject(403, `email must be of host ${process.env.HOST}`)
+      return
+    }
+
     const user = email.substring(0, mailHostIndex)
 
     const nb = connections.filter(c => {
@@ -65,12 +71,6 @@ const launchServer = function (afterSendCodeHook) {
     }
   
     try {
-    
-      if (mailHostIndex === -1) {
-        request.reject(403, `email must be of host ${process.env.HOST}`)
-        return
-      }
-      
       const connection = request.accept('echo-protocol', request.origin)
       console.info(`Connection accepted for ${from} ${email} at ${(new Date())}`)
       
