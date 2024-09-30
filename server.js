@@ -50,9 +50,10 @@ const launchServer = function (afterSendCodeHook) {
       return
     }
 
+    const user = email.substring(0, mailHostIndex)
 
     const nb = connections.filter(c => {
-      const matchingUser = c.email === email
+      const matchingUser = c.user === user
       const matchingFrom = c.from === from
       return c.value.connected && matchingFrom && matchingUser
     }).length
@@ -86,7 +87,7 @@ const launchServer = function (afterSendCodeHook) {
       connections.push({
         value: connection,
         from,
-        user: email.substring(0, mailHostIndex),
+        user,
         all
       })
     } catch (e) {
