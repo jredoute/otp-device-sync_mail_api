@@ -49,6 +49,19 @@ const launchServer = function (afterSendCodeHook) {
       request.reject(403, 'email query string must be specified')
       return
     }
+
+
+    const nb = connections.filter(c => {
+      const matchingUser = c.email === email
+      const matchingFrom = c.from === from
+      return c.value.connected && matchingFrom && matchingUser
+    })
+
+    if (nb > 2) {
+      request.reject(403, 'too many connections for this service-user pair')
+      return
+    }
+  
     try {
       const mailHostIndex = email.indexOf(`@${process.env.HOST}`)
     
@@ -60,10 +73,16 @@ const launchServer = function (afterSendCodeHook) {
       const connection = request.accept('echo-protocol', request.origin)
       console.info(`Connection accepted for ${from} ${email} at ${(new Date())}`)
       
+      const timeout = setTimeout(() => {
+        console.log('Timeout atteint, fermeture de la connexion.');
+        connection.close(1000, 'Timeout')
+      }, 5 * 60 * 1000);
+
       connection.on('close', function(reasonCode, description) {
+        clearTimeout(timeout);
         console.info(`Peer ${connection.remoteAddress} disconnected at ${(new Date())}`)
       });
-    
+
       connections.push({
         value: connection,
         from,
