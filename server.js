@@ -21,7 +21,7 @@ const connections = []
 
 const baseMailPath = `${process.env.USERS_PATH}`
 
-const launchServer = function (afterSendCodeHook) {
+const launchServer = function () {
   var server = http.createServer();
 
   server.listen(process.env.PORT, function() {
@@ -39,8 +39,9 @@ const launchServer = function (afterSendCodeHook) {
   });
   
   wsServer.on('request', function(request) {
-    const { from, email, all } = request.resourceURL.query
+    const { from, email } = request.resourceURL.query
 
+    console.log(`request for ${from}, ${email}`)
     if (!from) {
       request.reject(403, 'from query string must be specified')
       return
@@ -87,8 +88,7 @@ const launchServer = function (afterSendCodeHook) {
       connections.push({
         value: connection,
         from,
-        user,
-        all
+        user
       })
     } catch (e) {
       console.error(`error while creation ${from} ${email}`)
@@ -109,6 +109,7 @@ const launchServer = function (afterSendCodeHook) {
   chokidar.watch(baseMailPath, {
     ignoreInitial: true
   }).on('add', async (path) => {
+    console.log('watched', path)
     if (path.endsWith('.' + process.env.HOST) && path.indexOf('/Maildir/new') !== -1) {
       const file = fs.readFileSync(path)
   
@@ -147,14 +148,6 @@ const launchServer = function (afterSendCodeHook) {
             }));
     
             c.value.close(1000, 'Job done')
-
-            if (!c.all) {
-              afterSendCodeHook && afterSendCodeHook(JSON.stringify({
-                codes,
-                links,
-                html
-              }), c.from, c.user)
-            }
           } catch (e) {
             console.error(`error with ws client:`, e)
           }
